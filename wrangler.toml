@@ -1,0 +1,8 @@
+name = "parsayan-canteen"
+main = "src/index.js"
+compatibility_date = "2026-11-08"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "parsayan-canteen-db"
+database_id = "60f32634-f5c4-42c7-ad71-cea15d29e52e"
