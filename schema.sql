@@ -101,3 +101,66 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   details TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+
+-- ماژول سود، کمیسیون، خرید، هزینه و حساب‌های دریافتنی/پرداختنی
+CREATE TABLE IF NOT EXISTS commission_settings (
+  id INTEGER PRIMARY KEY CHECK(id=1),
+  percent REAL NOT NULL DEFAULT 0 CHECK(percent>=0 AND percent<=100),
+  basis TEXT NOT NULL DEFAULT 'sale_amount' CHECK(basis IN ('sale_amount','gross_profit')),
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+INSERT OR IGNORE INTO commission_settings(id,percent,basis) VALUES(1,0,'sale_amount');
+
+CREATE TABLE IF NOT EXISTS suppliers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  phone TEXT,
+  address TEXT,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS purchases (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  purchase_no TEXT NOT NULL UNIQUE,
+  supplier_id INTEGER REFERENCES suppliers(id),
+  total_amount INTEGER NOT NULL CHECK(total_amount>=0),
+  paid_amount INTEGER NOT NULL DEFAULT 0 CHECK(paid_amount>=0),
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS purchase_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  purchase_id INTEGER NOT NULL REFERENCES purchases(id),
+  product_id INTEGER NOT NULL REFERENCES products(id),
+  quantity INTEGER NOT NULL CHECK(quantity>0),
+  unit_cost INTEGER NOT NULL CHECK(unit_cost>=0),
+  line_total INTEGER NOT NULL CHECK(line_total>=0)
+);
+CREATE TABLE IF NOT EXISTS financial_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  account_type TEXT NOT NULL CHECK(account_type IN ('receivable','payable')),
+  phone TEXT,
+  notes TEXT,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS financial_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  account_id INTEGER NOT NULL REFERENCES financial_accounts(id),
+  entry_type TEXT NOT NULL CHECK(entry_type IN ('charge','payment','adjustment')),
+  amount INTEGER NOT NULL CHECK(amount>0),
+  reference TEXT,
+  description TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_fin_entries_account ON financial_entries(account_id,created_at);
+CREATE INDEX IF NOT EXISTS idx_purchases_created ON purchases(created_at);
+
+-- ستون‌های تاریخی فروش برای محاسبه دقیق سود هر قلم در زمان فروش
+ALTER TABLE sale_items ADD COLUMN unit_cost INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sale_items ADD COLUMN commission_percent REAL NOT NULL DEFAULT 0;
+ALTER TABLE sale_items ADD COLUMN commission_amount INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sale_items ADD COLUMN gross_profit INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sale_items ADD COLUMN net_profit INTEGER NOT NULL DEFAULT 0;
