@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS users (
   full_name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('seller','accountant','manager')),
+  student_id INTEGER REFERENCES students(id),
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
