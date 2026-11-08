@@ -2,11 +2,11 @@ const html = `<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>حسابداری بوفه پارسیان</title>
+<title>حسابداری بوفه پارسایان</title>
 <style>
 :root{font-family:Tahoma,Arial,sans-serif;color:#172033;background:#f3f6fb}*{box-sizing:border-box}body{margin:0}.top{background:linear-gradient(120deg,#123c72,#1976c9);color:#fff;padding:22px max(18px,calc((100% - 1100px)/2))}.top h1{margin:0 0 6px;font-size:23px}.wrap{max-width:1100px;margin:22px auto;padding:0 16px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card,.panel{background:#fff;border:1px solid #e4eaf2;border-radius:16px;padding:16px;box-shadow:0 4px 16px #19365b0a}.stat small{color:#667085}.stat strong{display:block;font-size:23px;margin-top:9px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.tabs button,.btn{border:0;border-radius:10px;padding:11px 16px;background:#1769aa;color:#fff;cursor:pointer;font-weight:bold}.tabs button{background:#e3edf8;color:#174b7b}.tabs button.active{background:#1769aa;color:white}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.panel h2{font-size:18px;margin:0 0 15px}label{display:block;font-size:13px;color:#526174;margin:12px 0 6px}input,select{width:100%;padding:12px;border:1px solid #d5deea;border-radius:9px;background:#fff;font:inherit} .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.total{background:#edf6ff;border-radius:12px;padding:15px;margin:14px 0;display:flex;justify-content:space-between;align-items:center}.total b{font-size:22px;color:#1264a3}.muted{color:#718096;font-size:12px}.notice{padding:11px;border-radius:10px;background:#fff5df;color:#815400;margin:10px 0}.hidden{display:none}table{width:100%;border-collapse:collapse}td,th{text-align:right;padding:10px;border-bottom:1px solid #edf0f5;font-size:13px}.pill{padding:4px 8px;border-radius:20px;background:#edf6ff;color:#155c92;font-size:12px}@media(max-width:760px){.stats{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.top{padding:18px}.wrap{margin:14px auto}.row{grid-template-columns:1fr}}
 </style></head><body>
-<header class="top"><h1>پارسیان | حسابداری بوفه</h1><div>مدیریت فروش، کالاها و حساب دانش‌آموزان</div></header>
+<header class="top"><h1>پارسایان | حسابداری بوفه</h1><div>مدیریت فروش، کالاها و حساب دانش‌آموزان</div></header>
 <main class="wrap">
 <section class="stats">
 <div class="card stat"><small>فروش امروز</small><strong id="todaySales">۰ تومان</strong></div>
