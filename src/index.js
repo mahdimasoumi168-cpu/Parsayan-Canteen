@@ -116,6 +116,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 export default {
  async fetch(request,env){
   const traceId=crypto.randomUUID();
+  let workerStage='آغاز درخواست';
   try{
   const url=new URL(request.url),path=url.pathname;
   if(path==='/'||path==='/index.html')return new Response(html,{headers:{'content-type':'text/html; charset=utf-8'}});
@@ -125,6 +126,7 @@ export default {
   const digest=async s=>b64u(await crypto.subtle.digest('SHA-256',enc.encode(s)));
   const hashPassword=async password=>{const salt=crypto.getRandomValues(new Uint8Array(16));const key=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:210000,hash:'SHA-256'},key,256);return 'pbkdf2:210000:'+b64u(salt)+':'+b64u(bits)};
   const verifyPassword=async(password,stored)=>{try{const[,it,salt,expected]=stored.split(':');const normalized=salt.replace(/-/g,'+').replace(/_/g,'/');const raw=Uint8Array.from(atob(normalized+'='.repeat((4-normalized.length%4)%4)),x=>x.charCodeAt(0));const key=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:raw,iterations:Number(it),hash:'SHA-256'},key,256);return b64u(bits)===expected}catch{return false}};
+  workerStage='آماده‌سازی پایگاه داده';
   try{
    if(!env.DB)throw Error('اتصال پایگاه داده DB در Worker تنظیم نشده است');
    await env.DB.prepare("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,username TEXT NOT NULL UNIQUE,full_name TEXT NOT NULL,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('seller','accountant','manager')),active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
@@ -134,11 +136,13 @@ export default {
    await env.DB.prepare("CREATE TABLE IF NOT EXISTS commission_payouts(month TEXT PRIMARY KEY,amount INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','paid')),paid_at TEXT,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
    await env.DB.prepare("INSERT OR IGNORE INTO commission_settings(id,percent,basis) VALUES(1,0,'sale_amount')").run();
   }catch(e){return json({error:'خطا در آماده‌سازی پایگاه داده: '+(e.message||'نامشخص')},503)}
+  workerStage='ساخت حساب مدیر';
   if(env.ADMIN_PASSWORD){const exists=await env.DB.prepare("SELECT id FROM users WHERE username='admin' LIMIT 1").first();if(!exists){const ph=await hashPassword(env.ADMIN_PASSWORD);await env.DB.prepare("INSERT OR IGNORE INTO users(username,full_name,password_hash,role) VALUES('admin','مدیر سامانه',?,'manager')").bind(ph).run()}}
+  workerStage='بررسی نشست کاربر';
   const cookie=(request.headers.get('Cookie')||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('pc_session='))?.slice(11);let currentUser=null;if(cookie){const tokenHash=await digest(cookie);currentUser=await env.DB.prepare("SELECT u.id,u.username,u.full_name,CASE WHEN u.student_id IS NOT NULL THEN 'student' WHEN u.username='admin' AND u.role='manager' THEN 'owner' ELSE u.role END role,u.student_id FROM user_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>datetime('now') AND u.active=1").bind(tokenHash).first()}
   if(path==='/'||path==='/index.html')return new Response(html,{headers:{'content-type':'text/html; charset=utf-8'}});
   if(path==='/api/setup/operators'&&request.method==='POST')return json({error:'ساخت حساب فقط از پنل عملیاتی بوفه انجام می‌شود'},410);
-  if(path==='/api/login'&&request.method==='POST'){try{const b=await request.json();const u=await env.DB.prepare('SELECT * FROM users WHERE username=? AND active=1').bind(String(b.username||'').trim()).first();if(!u||!await verifyPassword(String(b.password||''),u.password_hash))return json({error:'نام کاربری یا گذرواژه نادرست است'},401);const token=b64u(crypto.getRandomValues(new Uint8Array(32)));await env.DB.prepare("INSERT INTO user_sessions(user_id,token_hash,expires_at) VALUES(?,?,datetime('now','+12 hours'))").bind(u.id,await digest(token)).run();return new Response(JSON.stringify({user:{username:u.username,full_name:u.full_name,role:u.student_id?'student':(u.username==='admin'&&u.role==='manager'?'owner':u.role)}}),{headers:{'content-type':'application/json; charset=utf-8','set-cookie':'pc_session='+token+'; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=43200'}})}catch(e){console.error('Parsayan login failure',{trace_id:traceId,message:e?.message||String(e),stack:e?.stack||null});return json({error:'ورود در سرور با خطا روبه‌رو شد.',tracking_id:traceId},500)}}
+  if(path==='/api/login'&&request.method==='POST'){workerStage='پردازش درخواست ورود';try{const b=await request.json();const u=await env.DB.prepare('SELECT * FROM users WHERE username=? AND active=1').bind(String(b.username||'').trim()).first();if(!u||!await verifyPassword(String(b.password||''),u.password_hash))return json({error:'نام کاربری یا گذرواژه نادرست است'},401);const token=b64u(crypto.getRandomValues(new Uint8Array(32)));await env.DB.prepare("INSERT INTO user_sessions(user_id,token_hash,expires_at) VALUES(?,?,datetime('now','+12 hours'))").bind(u.id,await digest(token)).run();return new Response(JSON.stringify({user:{username:u.username,full_name:u.full_name,role:u.student_id?'student':(u.username==='admin'&&u.role==='manager'?'owner':u.role)}}),{headers:{'content-type':'application/json; charset=utf-8','set-cookie':'pc_session='+token+'; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=43200'}})}catch(e){console.error('Parsayan login failure',{trace_id:traceId,message:e?.message||String(e),stack:e?.stack||null});return json({error:'ورود در سرور با خطا روبه‌رو شد.',tracking_id:traceId},500)}}
   if(path==='/api/logout'&&request.method==='POST'){if(cookie)await env.DB.prepare('DELETE FROM user_sessions WHERE token_hash=?').bind(await digest(cookie)).run();return new Response(JSON.stringify({ok:true}),{headers:{'content-type':'application/json; charset=utf-8','set-cookie':'pc_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'}})}
   if(path.startsWith('/api/')&&!currentUser)return json({error:'برای ورود ابتدا نام کاربری و گذرواژه را وارد کنید'},401);
   if(path==='/api/me'&&currentUser)return json({user:currentUser});
@@ -257,6 +261,6 @@ export default {
    }catch(e){return json({error:e.message||'خطای داخلی'},400)}
   }
   return new Response('Not found',{status:404});
-  }catch(e){console.error('Parsayan Canteen Worker exception', {trace_id:traceId,message:e?.message||String(e),stack:e?.stack||null,path:new URL(request.url).pathname,method:request.method});return json({error:'خطای داخلی سامانه رخ داد. لطفاً شناسه پیگیری را برای بررسی ارسال کنید.',tracking_id:traceId},500)}
+  }catch(e){console.error('Parsayan Canteen Worker exception', {trace_id:traceId,message:e?.message||String(e),stack:e?.stack||null,path:new URL(request.url).pathname,method:request.method});return json({error:'خطای داخلی سامانه رخ داد. لطفاً شناسه پیگیری را برای بررسی ارسال کنید. (مرحله: '+workerStage+')',tracking_id:traceId},500)}
  }
 };
