@@ -30,7 +30,7 @@ const html = `<!doctype html>
 </section>
 <section id="products" class="panel hidden"><h2>افزودن کالا</h2><div class="row"><div><label>نام کالا</label><input id="newProduct" placeholder="مثلاً ساندویچ"></div><div><label>قیمت خرید (تومان)</label><input id="buyPrice" type="number" min="0"></div><div><label>قیمت فروش (تومان)</label><input id="sellPrice" type="number" min="0"></div><div><label>موجودی اولیه</label><input id="stock" type="number" min="0" value="0"></div></div><button class="btn" id="addProduct">ذخیره کالا</button><div id="productTable"></div></section>
 <section id="students" class="panel hidden"><h2>افزودن دانش‌آموز</h2><div class="row"><div><label>نام و نام خانوادگی</label><input id="newStudent" placeholder="نام دانش‌آموز"></div><div><label>پایه و کلاس</label><input id="className" placeholder="مثلاً هشتم ۲"></div></div><button class="btn" id="addStudent">ذخیره دانش‌آموز</button><div id="studentTable"></div></section>
-<section id="reports" class="panel hidden"><h2>گزارش و تسویه حساب</h2><p class="muted">گزارش فروش و مانده بدهی بر اساس اطلاعات ثبت‌شده در پایگاه داده.</p><div id="reportTable"></div></section>
+<section id="reports" class="panel hidden"><h2>گزارش و تسویه حساب</h2><p class="muted">گزارش فروش و مانده بدهی بر اساس اطلاعات ثبت‌شده در پایگاه داده.</p><div class="row"><div><label>دانش‌آموز برای تسویه</label><select id="paymentStudent"></select></div><div><label>مبلغ پرداخت (تومان)</label><input id="paymentAmount" type="number" min="1" placeholder="مثلاً ۵۰۰۰۰"></div></div><label>توضیحات پرداخت (اختیاری)</label><input id="paymentNote" placeholder="مثلاً تسویه بخشی از بدهی"><button class="btn" id="submitPayment" style="margin-top:12px">ثبت دریافت و تسویه بدهی</button><p id="paymentMsg" class="muted"></p><div id="reportTable"></div></section>
 </main>
 <script>
 const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('fa-IR')+' تومان';
@@ -40,12 +40,13 @@ async function refresh(){try{const [p,s,sum,sales]=await Promise.all([api('/prod
 function selected(){return products.find(x=>String(x.id)===$('product').value)}
 function calc(){$('unitPrice').value=selected()?money(selected().sale_price):'۰';$('total').textContent=money((selected()?.sale_price||0)*Math.max(1,Number($('qty').value||1)));$('creditNote').classList.toggle('hidden',$('method').value!=='credit')}
 function renderProducts(){$('productTable').innerHTML='<table><tr><th>کالا</th><th>قیمت فروش</th><th>موجودی</th></tr>'+products.map(p=>'<tr><td>'+p.name+'</td><td>'+money(p.sale_price)+'</td><td>'+p.stock_qty+'</td></tr>').join('')+'</table>'}
-function renderStudents(){$('studentTable').innerHTML='<table><tr><th>دانش‌آموز</th><th>کلاس</th><th>بدهی</th></tr>'+students.map(s=>'<tr><td>'+s.full_name+'</td><td>'+(s.class_name||'-')+'</td><td>'+money(s.balance)+'</td></tr>').join('')+'</table>'}
+function renderStudents(){$('studentTable').innerHTML='<table><tr><th>دانش‌آموز</th><th>کلاس</th><th>بدهی</th></tr>'+students.map(s=>'<tr><td>'+s.full_name+'</td><td>'+(s.class_name||'-')+'</td><td>'+money(s.balance)+'</td></tr>').join('')+'</table>';if($('paymentStudent'))$('paymentStudent').innerHTML=students.map(s=>'<option value="'+s.id+'">'+s.full_name+' — بدهی '+money(s.balance)+'</option>').join('')||'<option value="">دانش‌آموزی ثبت نشده</option>'}
 function renderReport(s){$('reportTable').innerHTML='<table><tr><th>دانش‌آموز</th><th>کلاس</th><th>مانده بدهی</th></tr>'+s.map(x=>'<tr><td>'+x.full_name+'</td><td>'+(x.class_name||'-')+'</td><td>'+money(x.balance)+'</td></tr>').join('')+'</table>'}
 $('product').onchange=calc;$('qty').oninput=calc;$('method').onchange=calc;
 $('submitSale').onclick=async()=>{try{const p=selected(),qty=Number($('qty').value),method=$('method').value,studentId=$('student').value;if(!p)throw Error('ابتدا کالا ثبت و انتخاب کنید');if(method==='credit'&&!studentId)throw Error('برای ثبت نسیه باید دانش‌آموز انتخاب شود');if(qty<1||qty>p.stock_qty)throw Error('تعداد واردشده بیشتر از موجودی کالا است');const result=await api('/sales',{method:'POST',body:JSON.stringify({product_id:p.id,quantity:qty,student_id:studentId||null,payment_method:method,note:$('note').value})});$('saleMsg').textContent='فروش با شماره '+result.receipt_no+' با موفقیت ثبت شد.';$('qty').value=1;$('note').value='';await refresh();calc()}catch(e){$('saleMsg').textContent=e.message}};
 $('addProduct').onclick=async()=>{try{await api('/products',{method:'POST',body:JSON.stringify({name:$('newProduct').value,purchase_price:Number($('buyPrice').value),sale_price:Number($('sellPrice').value),stock_qty:Number($('stock').value)})});$('newProduct').value='';await refresh()}catch(e){alert(e.message)}};
 $('addStudent').onclick=async()=>{try{await api('/students',{method:'POST',body:JSON.stringify({full_name:$('newStudent').value,class_name:$('className').value})});$('newStudent').value='';await refresh()}catch(e){alert(e.message)}};
+$('submitPayment').onclick=async()=>{try{const studentId=$('paymentStudent').value,amount=Number($('paymentAmount').value);if(!studentId)throw Error('ابتدا دانش‌آموز را انتخاب کنید');if(!Number.isSafeInteger(amount)||amount<1)throw Error('مبلغ پرداخت باید عدد صحیح و بیشتر از صفر باشد');const r=await api('/students/payment',{method:'POST',body:JSON.stringify({student_id:Number(studentId),amount,note:$('paymentNote').value})});$('paymentMsg').textContent='پرداخت '+money(r.paid)+' ثبت شد. کد پیگیری: '+r.reference;$('paymentAmount').value='';$('paymentNote').value='';await refresh()}catch(e){$('paymentMsg').textContent=e.message}};
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));['sale','products','students','reports'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab))});
 refresh().then(calc);
 </script></body></html>`;
@@ -79,6 +80,20 @@ export default {
      const b=await request.json();if(!b.full_name)throw Error('نام دانش‌آموز الزامی است');
      const r=await env.DB.prepare('INSERT INTO students(full_name,class_name) VALUES(?,?)').bind(b.full_name,b.class_name||'').run();return json({id:r.meta.last_row_id},201);
     }
+    if(path==='/api/students/payment'&&request.method==='POST'){
+     const b=await request.json(),studentId=Number(b.student_id),amount=Number(b.amount);
+     if(!Number.isInteger(studentId)||studentId<1||!Number.isSafeInteger(amount)||amount<1)throw Error('دانش‌آموز و مبلغ پرداخت را درست وارد کنید');
+     const st=await env.DB.prepare('SELECT id FROM students WHERE id=? AND active=1').bind(studentId).first();
+     if(!st)throw Error('دانش‌آموز انتخاب‌شده معتبر نیست');
+     const reference='PAY-'+crypto.randomUUID(),description=(b.note||'تسویه بدهی دانش‌آموز')+' · '+reference;
+     const result=await env.DB.batch([
+      env.DB.prepare("INSERT INTO student_ledger(student_id,entry_type,amount,description) SELECT ?, 'payment', ?, ? WHERE ? <= COALESCE((SELECT SUM(CASE WHEN entry_type='debt' THEN amount WHEN entry_type='payment' THEN -amount ELSE amount END) FROM student_ledger WHERE student_id=?),0)").bind(studentId,amount,description,amount,studentId),
+      env.DB.prepare("INSERT INTO cash_transactions(transaction_type,amount,description) SELECT 'student_payment',amount,description FROM student_ledger WHERE description=? AND student_id=? AND entry_type='payment'").bind(description,studentId)
+     ]);
+     if(result[0].meta.changes!==1)throw Error('مبلغ پرداخت از مانده بدهی دانش‌آموز بیشتر است یا بدهی ندارد؛ پرداخت ثبت نشد');
+     if(result[1].meta.changes!==1)throw Error('ثبت دریافت صندوق انجام نشد؛ عملیات لغو شد');
+     return json({paid:amount,reference},201);
+    }
     if(path==='/api/sales'&&request.method==='POST'){
      const b=await request.json(),qty=Number(b.quantity),method=b.payment_method;
      if(!Number.isInteger(qty)||qty<1||!['cash','card','credit'].includes(method))throw Error('اطلاعات فروش معتبر نیست');
@@ -86,15 +101,19 @@ export default {
      const p=await env.DB.prepare('SELECT * FROM products WHERE id=? AND active=1').bind(b.product_id).first();
      if(!p||p.stock_qty<qty)throw Error('کالا وجود ندارد یا موجودی کافی نیست');
      if(b.student_id){const st=await env.DB.prepare('SELECT id FROM students WHERE id=? AND active=1').bind(b.student_id).first();if(!st)throw Error('دانش‌آموز انتخاب‌شده معتبر نیست')}
-     const total=p.sale_price*qty,receipt='P-'+Date.now();
+     const total=p.sale_price*qty,receipt='P-'+crypto.randomUUID();
      const statements=[
-      env.DB.prepare('INSERT INTO sales(receipt_no,student_id,payment_method,total_amount,note) VALUES(?,?,?,?,?)').bind(receipt,b.student_id||null,method,total,b.note||''),
-      env.DB.prepare('UPDATE products SET stock_qty=stock_qty-? WHERE id=? AND stock_qty>=?').bind(qty,p.id,qty)
+      env.DB.prepare('UPDATE products SET stock_qty=stock_qty-? WHERE id=? AND stock_qty>=?').bind(qty,p.id,qty),
+      env.DB.prepare("INSERT INTO sales(receipt_no,student_id,payment_method,total_amount,note) SELECT ?,?,?,?,? WHERE changes()=1").bind(receipt,b.student_id||null,method,total,b.note||''),
+      env.DB.prepare('INSERT INTO sale_items(sale_id,product_id,product_name,quantity,unit_price,line_total) SELECT id,?,?,?,?,? FROM sales WHERE receipt_no=?').bind(p.id,p.name,qty,p.sale_price,total,receipt),
+      method==='credit'
+       ? env.DB.prepare("INSERT INTO student_ledger(student_id,sale_id,entry_type,amount,description) SELECT ?,id,'debt',?,? FROM sales WHERE receipt_no=?").bind(b.student_id,total,'خرید نسیه - '+receipt,receipt)
+       : env.DB.prepare('INSERT INTO cash_transactions(sale_id,transaction_type,amount,description) SELECT id,?,?,? FROM sales WHERE receipt_no=?').bind(method==='cash'?'cash_sale':'card_sale',total,'فروش '+receipt,receipt)
      ];
-     const result=await env.DB.batch(statements),saleId=result[0].meta.last_row_id;
-     await env.DB.prepare('INSERT INTO sale_items(sale_id,product_id,product_name,quantity,unit_price,line_total) VALUES(?,?,?,?,?,?)').bind(saleId,p.id,p.name,qty,p.sale_price,total).run();
-     if(method==='credit')await env.DB.prepare("INSERT INTO student_ledger(student_id,sale_id,entry_type,amount,description) VALUES(?,?,'debt',?,?)").bind(b.student_id,saleId,total,'خرید نسیه - '+receipt).run();
-     else await env.DB.prepare('INSERT INTO cash_transactions(sale_id,transaction_type,amount,description) VALUES(?,?,?,?)').bind(saleId,method==='cash'?'cash_sale':'card_sale',total,'فروش '+receipt).run();
+     const result=await env.DB.batch(statements);
+     if(result[0].meta.changes!==1||result[1].meta.changes!==1)throw Error('موجودی کالا تغییر کرده یا کافی نیست؛ فروش ثبت نشد');
+     const saleId=result[1].meta.last_row_id;
+     if(result.some((r,i)=>i>=2&&r.meta.changes!==1))throw Error('ثبت کامل فروش انجام نشد؛ عملیات لغو شد');
      return json({sale_id:saleId,receipt_no:receipt,total_amount:total},201);
     }
     return json({error:'مسیر درخواست پیدا نشد'},404);
