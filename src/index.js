@@ -114,6 +114,7 @@ const setupHtml = `<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*'}});
 export default {
  async fetch(request,env){
+  try{
   const url=new URL(request.url),path=url.pathname;
   if(path==='/'||path==='/index.html')return new Response(html,{headers:{'content-type':'text/html; charset=utf-8'}});
   if(path==='/setup')return new Response(setupHtml,{headers:{'content-type':'text/html; charset=utf-8'}});
@@ -256,5 +257,6 @@ export default {
    }catch(e){return json({error:e.message||'خطای داخلی'},400)}
   }
   return new Response('Not found',{status:404});
+  }catch(e){console.error('Parsayan Canteen Worker exception',e);return json({error:'خطای داخلی سامانه رخ داد. شناسه پیگیری در گزارش‌های Worker ثبت شد.'},500)}
  }
 };
