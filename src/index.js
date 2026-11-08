@@ -14,7 +14,7 @@ const html = `<!doctype html>
 <div class="card stat"><small>بدهی دانش‌آموزان</small><strong id="debtTotal">۰ تومان</strong></div>
 <div class="card stat"><small>تعداد کالا</small><strong id="productCount">۰</strong></div>
 </section>
-<nav class="tabs"><button class="active" data-tab="sale">ثبت فروش</button><button data-tab="products">کالاها</button><button data-tab="students">دانش‌آموزان</button><button data-tab="reports">گزارش‌ها</button></nav>
+<nav class="tabs"><button class="active" data-tab="sale">ثبت فروش</button><button data-tab="products">کالاها</button><button data-tab="students">دانش‌آموزان</button><button data-tab="reports">گزارش‌ها</button><button data-tab="users" style="display:none">کاربران و دسترسی‌ها</button></nav>
 <section id="sale" class="grid">
 <div class="panel"><h2>ثبت فروش جدید</h2>
 <label>انتخاب دانش‌آموز (برای نسیه الزامی است)</label><select id="student"><option value="">فروش آزاد / بدون دانش‌آموز</option></select>
@@ -284,7 +284,6 @@ export default {
   if(path==='/api/users'&&request.method==='GET'&&currentUser?.role==='manager')return json(await env.DB.prepare('SELECT id,username,full_name,role,active,created_at FROM users ORDER BY id').all().then(x=>x.results));
   if(path==='/api/users'&&request.method==='POST'&&currentUser?.role==='manager'){try{const b=await request.json();if(!/^[a-zA-Z0-9._-]{3,32}$/.test(b.username||''))throw Error('نام کاربری باید ۳ تا ۳۲ نویسه لاتین باشد');if(String(b.password||'').length<10)throw Error('گذرواژه باید حداقل ۱۰ نویسه باشد');if(!['seller','accountant','manager'].includes(b.role))throw Error('نقش انتخاب‌شده معتبر نیست');const ph=await hashPassword(b.password);await env.DB.prepare('INSERT INTO users(username,full_name,password_hash,role) VALUES(?,?,?,?)').bind(b.username,b.full_name||b.username,ph,b.role).run();await env.DB.prepare('INSERT INTO audit_logs(user_id,action,details) VALUES(?,?,?)').bind(currentUser.id,'create_user',b.username+' / '+b.role).run();return json({ok:true},201)}catch(e){return json({error:e.message||'ساخت کاربر انجام نشد'},400)}}
   if(path==='/api/users'&&request.method==='GET'&&currentUser?.role!=='manager')return json({error:'دسترسی غیرمجاز'},403);
-  if(path.startsWith('/api/')){const url=new URL(request.url);
   if(request.method==='OPTIONS')return new Response(null,{headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'content-type'}});
   if(path.startsWith('/api/')){
    try{
