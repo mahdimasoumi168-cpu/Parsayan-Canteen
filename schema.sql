@@ -74,3 +74,30 @@ CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
 CREATE INDEX IF NOT EXISTS idx_sales_student ON sales(student_id);
 CREATE INDEX IF NOT EXISTS idx_ledger_student ON student_ledger(student_id);
 CREATE INDEX IF NOT EXISTS idx_cash_created_at ON cash_transactions(created_at);
+
+
+-- احراز هویت و سطح دسترسی سه‌نقشی
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE,
+  full_name TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('seller','accountant','manager')),
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS user_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_expiry ON user_sessions(expires_at);
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id),
+  action TEXT NOT NULL,
+  details TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
