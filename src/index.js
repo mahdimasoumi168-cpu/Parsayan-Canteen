@@ -53,6 +53,9 @@ refresh().then(calc);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*'}});
 export default {
  async fetch(request,env){
+  if(!env.ADMIN_PASSWORD)return new Response('سامانه هنوز پیکربندی امنیتی نشده است.',{status:503,headers:{'content-type':'text/plain; charset=utf-8'}});
+  const expected='Basic '+btoa('admin:'+env.ADMIN_PASSWORD);
+  if(request.headers.get('Authorization')!==expected)return new Response('ورود مدیر الزامی است.',{status:401,headers:{'WWW-Authenticate':'Basic realm="Parsayan Canteen", charset="UTF-8"','content-type':'text/plain; charset=utf-8'}});
   const url=new URL(request.url),path=url.pathname;
   if(request.method==='OPTIONS')return new Response(null,{headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'content-type'}});
   if(path.startsWith('/api/')){
