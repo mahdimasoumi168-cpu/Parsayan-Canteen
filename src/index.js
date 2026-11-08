@@ -66,7 +66,7 @@ export default {
  async fetch(request,env){
   const url=new URL(request.url),path=url.pathname;
   const enc=new TextEncoder();
-  const b64u=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+  const b64u=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
   const digest=async s=>b64u(await crypto.subtle.digest('SHA-256',enc.encode(s)));
   const hashPassword=async password=>{const salt=crypto.getRandomValues(new Uint8Array(16));const key=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:210000,hash:'SHA-256'},key,256);return 'pbkdf2:210000:'+b64u(salt)+':'+b64u(bits)};
   const verifyPassword=async(password,stored)=>{try{const[,it,salt,expected]=stored.split(':');const normalized=salt.replace(/-/g,'+').replace(/_/g,'/');const raw=Uint8Array.from(atob(normalized+'='.repeat((4-normalized.length%4)%4)),x=>x.charCodeAt(0));const key=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:raw,iterations:Number(it),hash:'SHA-256'},key,256);return b64u(bits)===expected}catch{return false}};
