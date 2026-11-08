@@ -164,3 +164,24 @@ ALTER TABLE sale_items ADD COLUMN commission_percent REAL NOT NULL DEFAULT 0;
 ALTER TABLE sale_items ADD COLUMN commission_amount INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE sale_items ADD COLUMN gross_profit INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE sale_items ADD COLUMN net_profit INTEGER NOT NULL DEFAULT 0;
+
+
+-- شماره کارت مدیر به‌صورت رمزنگاری‌شده و جداگانه برای هر ماه
+CREATE TABLE IF NOT EXISTS manager_cards (
+  month TEXT PRIMARY KEY,
+  card_cipher TEXT NOT NULL,
+  cardholder_name TEXT,
+  bank_name TEXT,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- وضعیت پرداخت کمیسیون ماهانه
+CREATE TABLE IF NOT EXISTS commission_payouts (
+  month TEXT PRIMARY KEY,
+  amount INTEGER NOT NULL CHECK(amount>=0),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','paid')),
+  paid_at TEXT,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_sales_created_student ON sales(created_at,student_id);
+CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
