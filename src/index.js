@@ -70,7 +70,8 @@ body.dark-mode{background:#111827;color:#e5e7eb}body.dark-mode .card,body.dark-m
 </main>
 <div id="loginScreen" style="position:fixed;inset:0;background:#eef3fa;z-index:99;display:flex;align-items:center;justify-content:center;padding:18px"><div class="panel" style="width:min(420px,100%);padding:28px"><h2>ورود به سامانه بوفه پارسایان</h2><p class="muted">نام کاربری و گذرواژه اختصاصی خود را وارد کنید.</p><label>نام کاربری</label><input id="loginUser" autocomplete="username"><label>گذرواژه</label><input id="loginPass" type="password" autocomplete="current-password"><button class="btn" id="loginButton" type="button" style="width:100%;margin-top:16px">ورود امن</button><p id="loginError" class="muted"></p><p class="muted">نام کاربری و گذرواژه را از دفتر بوفه دریافت کنید.</p></div></div>
 <script>
-const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('fa-IR')+' تومان', finFmt=n=>money(Number(n||0));
+const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('fa-IR')+' تومان';
+function finFmt(n){return money(Number(n||0))}
 let products=[],students=[];
 async function api(path,opts={}){const r=await fetch('/api'+path,{headers:{'content-type':'application/json'},...opts});const j=await r.json();if(!r.ok)throw Error(j.error||'خطا در ارتباط با سرور');return j}
 async function refresh(){try{const [p,s,sum,sales]=await Promise.all([api('/products'),api('/students'),api('/summary'),api('/sales')]);products=p;students=s;$('productCount').textContent=p.length.toLocaleString('fa-IR');$('todaySales').textContent=money(sum.today_sales);$('cashTotal').textContent=money(sum.cash_total);$('debtTotal').textContent=money(sum.total_debt);$('product').innerHTML=p.map(x=>'<option value="'+x.id+'">'+x.name+' — '+money(x.sale_price)+' (موجودی '+x.stock_qty+')</option>').join('');$('student').innerHTML='<option value="">فروش آزاد / بدون دانش‌آموز</option>'+s.map(x=>'<option value="'+x.id+'">'+x.full_name+' — '+(x.class_name||'بدون کلاس')+'</option>').join('');renderProducts();renderStudents();if($('userStudent'))$('userStudent').innerHTML='<option value="">انتخاب دانش‌آموز</option>'+s.map(x=>'<option value="'+x.id+'">'+x.full_name+' — '+(x.class_name||'بدون کلاس')+'</option>').join('');$('recentSales').innerHTML=sales.slice(0,8).map(x=>'<p>سند '+x.receipt_no+' · '+(x.student_name||'فروش آزاد')+' · '+money(x.total_amount)+' · '+x.payment_method+'</p>').join('')||'هنوز فروشی ثبت نشده است.';renderReport(s)}catch(e){console.error(e);$('saleMsg').textContent=e.message}}
@@ -131,7 +132,7 @@ const themeButton=$('themeToggle');
 function applyTheme(theme){const dark=theme==='dark';document.documentElement.classList.toggle('dark-mode',dark);document.body.classList.toggle('dark-mode',dark);themeButton.textContent=dark?'حالت روز':'حالت شب';themeButton.setAttribute('aria-pressed',String(dark))}
 let initialTheme='light';try{initialTheme=localStorage.getItem('parsayan-theme')||'light'}catch(e){}
 applyTheme(initialTheme);
-themeButton.addEventListener('click',()=>{const dark=!document.body.classList.contains('dark-mode');applyTheme(dark?'dark':'light');try{localStorage.setItem('parsayan-theme',dark?'dark':'light')}catch(e){}});
+themeButton.addEventListener('click',(event)=>{event.preventDefault();event.stopPropagation();const dark=!document.documentElement.classList.contains('dark-mode');applyTheme(dark?'dark':'light');try{localStorage.setItem('parsayan-theme',dark?'dark':'light')}catch(e){}},true);
 $('printApp').onclick=()=>window.print();
 
 </script></body></html>`;
